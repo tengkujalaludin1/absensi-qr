@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi Siswa QR</title>
+
+  <!-- CSS & Library -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, sans-serif; }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-purple-500 to-pink-500 min-h-screen p-4">
+
+<div class="max-w-md mx-auto bg-white rounded-xl p-4 shadow-lg">
+  <h1 class="text-xl font-bold text-center mb-4">📋 Absensi QR Siswa</h1>
+
+  <!-- Camera -->
+  <div id="reader" class="rounded bg-gray-100 mb-3 min-h-[250px] flex items-center justify-center">
+    Kamera akan aktif di sini
+  </div>
+
+  <button onclick="startScanner()"
+    class="w-full bg-purple-600 text-white py-2 rounded font-semibold mb-4">
+    📷 Mulai Scan
+  </button>
+
+  <!-- History -->
+  <h2 class="font-semibold mb-2">📊 Riwayat</h2>
+  <div id="history" class="text-sm text-gray-600 space-y-2"></div>
+</div>
+
+<script>
+let html5QrCode;
+let data = JSON.parse(localStorage.getItem("absensi") || "[]");
+
+function saveData() {
+  localStorage.setItem("absensi", JSON.stringify(data));
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById("history");
+  if (data.length === 0) {
+    el.innerHTML = "<p>Belum ada data</p>";
+    return;
+  }
+
+  el.innerHTML = data.map(d => `
+    <div class="border rounded p-2">
+      <b>${d.name}</b><br>
+      ${d.class} • ${d.time}
+    </div>
+  `).join("");
+}
+
+async function startScanner() {
+  html5QrCode = new Html5Qrcode("reader");
+
+  try {
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 200 },
+      onScan
+    );
+  } catch (e) {
+    alert("Gagal mengakses kamera.\nKlik ikon kamera di address bar lalu Izinkan.");
+  }
+}
+
+async function onScan(text) {
+  try {
+    const s = JSON.parse(text);
+    const now = new Date().toLocaleString("id-ID");
+
+    data.unshift({
+      name: s.name,
+      class: s.class,
+      time: now
+    });
+
+    saveData();
+    await html5QrCode.stop();
+    document.getElementById("reader").innerHTML = "Scan selesai ✔️";
+
+  } catch {
+    alert("QR tidak valid");
+  }
+}
+
+renderHistory();
+</script>
+
+</body>
+</html>
